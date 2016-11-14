@@ -1,6 +1,7 @@
 package fr.thales;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public interface Plateau {
@@ -13,8 +14,8 @@ public interface Plateau {
 
 	String afficher();
 
-	int jouer(Joueur joueur) throws PasAToiDeJouerException;
+	int jouer(Joueur joueur) throws PasAToiDeJouerException, JoueurInconnuException;
 
-	Joueur getGagnant();
+	Optional<Joueur> getGagnant();
 
 }

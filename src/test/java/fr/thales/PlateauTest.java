@@ -1,8 +1,7 @@
 package fr.thales;
 
-import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.Assert;
@@ -14,21 +13,10 @@ public class PlateauTest {
 	private PlateauImpl plateau;
 
 	@Before
-	public void setup(){
-		
-		Set<Integer> casesRetour = new HashSet<Integer>();
-		casesRetour.add(2);
-		casesRetour.add(7);
-		casesRetour.add(12);
-		
-		Set<Integer> casesBonus = new HashSet<Integer>();
-		casesBonus.add(4);
-		casesBonus.add(10);
-		casesBonus.add(15);
-
-		CasesSpeciales casesSpeciales = new CasesSpeciales(casesRetour, casesBonus);
-		
-		plateau = new PlateauImpl(casesSpeciales);
+	public void setup(){		
+		plateau = new PlateauImpl().
+				avecCaseRetour(2,7,12).
+				avecCaseBonus(4, 10, 15);
 	}
 	
 	@Test
@@ -67,7 +55,7 @@ public class PlateauTest {
 	
 	@Test
 	public void testPlateauCaseRetour() {
-		Plateau plateau = new PlateauImpl();
+		Plateau plateau = new PlateauImpl().avecCaseRetour(5,9,35,8);
 		int sommeCaseRetour = 0;
 		List<Case> cases = plateau.getCases();
 		for (Case caze : cases) {
@@ -75,7 +63,7 @@ public class PlateauTest {
 				sommeCaseRetour++;
 			}
 		}
-		Assert.assertEquals(3, sommeCaseRetour);
+		Assert.assertEquals(4, sommeCaseRetour);
 	}
 
 	@Test
@@ -118,19 +106,9 @@ public class PlateauTest {
 	@Test
 	public void testCaseBonusSortDuPlateau() throws Exception {
 		
-		Set<Integer> casesRetour = new HashSet<Integer>();
-		casesRetour.add(2);
-		casesRetour.add(7);
-		casesRetour.add(12);
-		
-		Set<Integer> casesBonus = new HashSet<Integer>();
-		casesBonus.add(4);
-		casesBonus.add(10);
-		casesBonus.add(34);
-
-		CasesSpeciales casesSpeciales = new CasesSpeciales(casesRetour, casesBonus);
-		
-		PlateauImpl plateau = new PlateauImpl(casesSpeciales);
+		PlateauImpl plateau = new PlateauImpl().
+				avecCaseRetour(2,7,12).
+				avecCaseBonus(4, 10, 34);
 		
 		Joueur gpr = new Joueur("Géraldine", "GPR");
 		plateau.ajouterJoueur(gpr);
@@ -140,10 +118,6 @@ public class PlateauTest {
 		Assert.assertEquals("[D][][<-][][+3][][][<-][][][+3][][<-][][][][][][][][][][][][][][][][][][][][][][+3][][GPR]",
 				plateau.afficher());
 	}
-
-	
-	// TODO: test enchainement de résolution de case
-	// TODO: test la case bonus sort du plateau
 
 	@Test
 	public void testAfficherPlateauAvecDesJoueurs() {
@@ -198,7 +172,7 @@ public class PlateauTest {
 		plateau.ajouterJoueur(gpr);
 
 		plateau.jouer(gpr, 50);
-		Joueur gagnant = plateau.getGagnant();
+		Joueur gagnant = plateau.getGagnant().get();
 		Assert.assertEquals(gpr, gagnant);
 		
 	}
@@ -211,7 +185,10 @@ public class PlateauTest {
 		plateau.ajouterJoueur(gpr);
 
 		plateau.jouer(gpr, 36);
-		Joueur gagnant = plateau.getGagnant();
+		
+		Optional<Joueur> gagnantOptional = plateau.getGagnant();
+		Assert.assertTrue(gagnantOptional.isPresent());
+		Joueur gagnant = gagnantOptional.get();
 		Assert.assertEquals(gpr, gagnant);
 		
 	}
@@ -247,8 +224,24 @@ public class PlateauTest {
 		plateau.ajouterJoueur(gpr);
 		plateau.ajouterJoueur(ale);
 		
-		Joueur nextJoueur = plateau.getNextJoueur();
+		Joueur nextJoueur = plateau.getNextJoueur().get();
 		Assert.assertEquals(ale, nextJoueur);
 	
+	}
+	
+	@Test(expected=JoueurInconnuException.class)
+	public void testPlateauJoueurInconnu() throws Exception {
+		plateau.jouer(new Joueur("toto", "TOT"), 4);
+	}
+	
+	@Test(expected=JoueurInconnuException.class)
+	public void testPlateauSansJoueur() throws Exception {
+		plateau.jouer(null, 4);
+	}
+	
+	@Test
+	public void testJoueurNullJoue() {
+		plateau.ajouterJoueur(null);
+		Assert.assertTrue(plateau.getListeJoueurs().isEmpty());
 	}
 }

@@ -49,7 +49,6 @@ public class Joueur {
 	}
 
 	public int getPosition() {
-		// TODO Auto-generated method stub
 		return position;
 	}
 

@@ -4,25 +4,18 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class PlateauImpl implements Plateau {
 
 	private List<Case> cases;
 	private Set<Joueur> joueurs = new LinkedHashSet<Joueur>();
 
-	private Joueur joueurCourant =null;
-	
-	public PlateauImpl() {
-		this(new CasesSpeciales(3, 3));
-	}
+	private Joueur joueurCourant = null;
 
-	@Override
-	public String toString() {
-		return afficher();
-	}
-
-	PlateauImpl(CasesSpeciales casesSpeciales) {
+	PlateauImpl() {
 		cases = new LinkedList<Case>();
 
 		cases.add(new CaseDepart());
@@ -31,20 +24,23 @@ public class PlateauImpl implements Plateau {
 			cases.add(new Case(String.valueOf(i), ""));
 		}
 
-		Set<Integer> casesRetour = casesSpeciales.getCasesRetour();
-		Set<Integer> casesBonus = casesSpeciales.getCasesBonus();
+		cases.add(new CaseArrivee());
+	}
 
-		for (Integer index : casesRetour) {
-			cases.remove(index.intValue());
-			cases.add(index, new CaseRetour());
-		}
-
+	PlateauImpl avecCaseBonus(int... casesBonus) {
 		for (Integer index : casesBonus) {
 			cases.remove(index.intValue());
 			cases.add(index, new CaseBonus());
 		}
+		return this;
+	}
 
-		cases.add(new CaseArrivee());
+	PlateauImpl avecCaseRetour(int... casesRetour) {
+		for (Integer index : casesRetour) {
+			cases.remove(index.intValue());
+			cases.add(index, new CaseRetour());
+		}
+		return this;
 	}
 
 	/*
@@ -62,8 +58,8 @@ public class PlateauImpl implements Plateau {
 	 * @see fr.thales.Plateau#ajouterJoueur(fr.thales.Joueur)
 	 */
 	public void ajouterJoueur(Joueur joueur) {
-		if(joueurCourant==null){
-			joueurCourant=joueur;
+		if (joueurCourant == null) {
+			joueurCourant = joueur;
 		}
 		joueur.setPosition(0);
 		joueurs.add(joueur);
@@ -93,16 +89,8 @@ public class PlateauImpl implements Plateau {
 	}
 
 	private Set<Joueur> getListeJoueursSurLaCase(int numeroCase) {
-
-		Set<Joueur> mList = new LinkedHashSet<Joueur>();
-		Iterator<Joueur> mJoueurIterator = joueurs.iterator();
-		while (mJoueurIterator.hasNext()) {
-			Joueur joueur = mJoueurIterator.next();
-			if (numeroCase == joueur.getPosition()) {
-				mList.add(joueur);
-			}
-		}
-		return mList;
+		return joueurs.stream().filter(joueur -> (joueur.getPosition() == numeroCase))
+				.collect(Collectors.toCollection(LinkedHashSet::new));
 	}
 
 	/*
@@ -110,7 +98,7 @@ public class PlateauImpl implements Plateau {
 	 * 
 	 * @see fr.thales.Plateau#jouer(fr.thales.Joueur)
 	 */
-	public int jouer(Joueur joueur) throws PasAToiDeJouerException {
+	public int jouer(Joueur joueur) throws PasAToiDeJouerException, JoueurInconnuException {
 		if (!joueur.equals(joueurCourant)) {
 			throw new PasAToiDeJouerException();
 		}
@@ -119,7 +107,15 @@ public class PlateauImpl implements Plateau {
 		return lancerDeDé;
 	}
 
-	void jouer(Joueur joueur, int lancerDeDé) throws PasAToiDeJouerException {
+	void jouer(Joueur joueur, int lancerDeDé) throws PasAToiDeJouerException, JoueurInconnuException {
+		if (!joueurs.contains(joueur)) {
+			String name = "null";
+			if (joueur != null) {
+				name = joueur.getTrigram();
+			}
+			throw new JoueurInconnuException("Le joueur " + name + " est inconnu");
+		}
+
 		if (!joueur.equals(joueurCourant)) {
 			throw new PasAToiDeJouerException();
 		}
@@ -127,40 +123,43 @@ public class PlateauImpl implements Plateau {
 		Case caze = cases.get(targetPosition);
 		int nextPosition = Math.min(cases.size() - 1, caze.getNextPosition(targetPosition));
 		caze = cases.get(nextPosition);
-		
+
 		joueur.setPosition(nextPosition);
-		
+
 		if (caze.isARejouer()) {
-			jouer (joueur, 0);
+			jouer(joueur, 0);
 		}
-		
-		//TODO affecter qq part le prochain joueur
+
+		// TODO gérer le cas Optional empty
+		joueurCourant = getNextJoueur().get();
 	}
 
-	public Joueur getGagnant() {
-
-		for (Joueur joueur : joueurs) {
-			if (joueur.getPosition() >= cases.size() - 1) {
-				return joueur;
-			}
-		}
-		return null;
+	public Optional<Joueur> getGagnant() {
+		return joueurs.stream().
+				filter(j -> (j.getPosition() >= cases.size() - 1)).
+				findFirst();
 	}
 
-	public Joueur getNextJoueur() {
 	
+	Optional<Joueur> getNextJoueur() {
+
 		Iterator<Joueur> iterator = joueurs.iterator();
-		while (iterator.hasNext()){
+		while (iterator.hasNext()) {
 			Joueur joueur = iterator.next();
-			if(joueur.equals(joueurCourant)){
-				if(iterator.hasNext()){
-					return iterator.next();
+			if (joueur.equals(joueurCourant)) {
+				if (iterator.hasNext()) {
+					return Optional.of(iterator.next());
 				} else {
-					//TODO renvoyer le premier joueur
+					return joueurs.stream().findFirst();
 				}
 			}
 		}
-		return null;
+		return Optional.empty();
+	}
+
+	@Override
+	public String toString() {
+		return afficher();
 	}
 
 }

@@ -1,22 +1,14 @@
 package fr.thales;
 
-import java.util.Iterator;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class Joueurs {
 
 	public static String afficherTrigrammes(Set<Joueur> joueurs) {
-		StringBuilder builder = new StringBuilder();
+		
+		return joueurs.stream().map(j -> j.getTrigram()).collect(Collectors.joining("|"));
 
-		Iterator<Joueur> iterator = joueurs.iterator();
-		while (iterator.hasNext()) {
-			Joueur joueur = (Joueur) iterator.next();
-			builder.append(joueur.getTrigram());
-			if (iterator.hasNext()) {
-				builder.append("|");
-			}
-		}
-		return builder.toString();
 	}
 
 }
